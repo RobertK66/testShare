@@ -40,8 +40,7 @@ void mainApp() {
 		_delay_ms(1000);
 		RED_OFF;
 		_delay_ms(400);
-	}
-	//main();
+	}	
 }
 
 
@@ -73,22 +72,12 @@ void initLine(void ) {
 	uart_puts("Boot>");
 }
 
-#define PAGESIZE 64
 
-
-/*!
-* The function Returns one byte located on Flash address given by ucFlashStartAdr.
-**/
-unsigned char ReadFlashByte(unsigned long flashStartAdr){
-	return (unsigned char)*((const unsigned char __flash*)flashStartAdr);  
-} // Returns data from Flash
-
-
-unsigned char ReadFlashPage(unsigned long flashStartAdr, unsigned char *dataPage){
+bool ReadFlashPage(uint32_t flashStartAdr, uint8_t  *dataPage){
 	unsigned int index;
-	if(!(flashStartAdr & (PAGESIZE-1))){      // If input address is a page address
-		for(index = 0; index < PAGESIZE; index++){
-			dataPage[index] = ReadFlashByte(flashStartAdr + index);
+	if(!(flashStartAdr & (SPM_PAGESIZE-1))){      // If input address is a page address
+		for(index = 0; index < SPM_PAGESIZE; index++){
+			dataPage[index] = pgm_read_byte(flashStartAdr + index);
 		}
 		return true;                            // Return TRUE if valid page address
 	}
@@ -97,8 +86,7 @@ unsigned char ReadFlashPage(unsigned long flashStartAdr, unsigned char *dataPage
 	}
 }
 
-
-void boot_program_page (uint32_t page, uint8_t *buf)
+void boot_program_page (uint32_t flashStartAdr, uint8_t *buf)
 {
 	uint16_t i;
 	uint8_t sreg;
@@ -106,17 +94,16 @@ void boot_program_page (uint32_t page, uint8_t *buf)
 	sreg = SREG;
 	cli();
 	eeprom_busy_wait ();
-	boot_page_erase (page);
+	boot_page_erase (flashStartAdr);
 	boot_spm_busy_wait ();      // Wait until the memory is erased.
 	for (i=0; i<SPM_PAGESIZE; i+=2)
 	{
 		// Set up little-endian word.
 		uint16_t w = *buf++;
 		w += (*buf++) << 8;
-		
-		boot_page_fill (page + i, w);
+		boot_page_fill (flashStartAdr + i, w);
 	}
-	boot_page_write (page);     // Store buffer in flash page.
+	boot_page_write (flashStartAdr);     // Store buffer in flash page.
 	boot_spm_busy_wait();       // Wait until the memory is written.
 	// Reenable RWW-section again. We need this if we want to jump back
 	// to the application after bootloading.
@@ -131,7 +118,7 @@ const char * hex = "0123456789ABCDEF";
 
 unsigned char execute(unsigned char c, int par1, int par2) {
 	
-	unsigned char pageData[PAGESIZE*2];
+	unsigned char pageData[SPM_PAGESIZE];
 	
 	uart_putc(c);
 	uart_putc(':');
@@ -144,17 +131,15 @@ unsigned char execute(unsigned char c, int par1, int par2) {
 	uart_puts(buffer);
 	uart_puts(")\n\r");
 
-
-
 	switch (c) {
 		case 'q':
 			return 0;
 		case 'r':
 			{	// read a page from flash	par1 ... page #
 				//
-				if (ReadFlashPage(par1*PAGESIZE, pageData)) {
+				if (ReadFlashPage(par1*SPM_PAGESIZE, pageData)) {
 					uart_puts("ReadOk:");
-					for (int i=0;i<PAGESIZE;i++){
+					for (int i=0;i<SPM_PAGESIZE;i++){
 						if (!(i%8)){
 							uart_putc('\n');
 						}
@@ -169,12 +154,12 @@ unsigned char execute(unsigned char c, int par1, int par2) {
 			}
 			break;
 		case 'w':
-			{	// write some data from flash	par1 ... page #
+			{	// write some data to flash	par1 ... page #
 				//
-				for (int i=0;i<PAGESIZE;i++){
+				for (int i=0;i<SPM_PAGESIZE;i++){
 					pageData[i] = i & 0xFF;
 				}				
-				boot_program_page(par1*PAGESIZE, pageData);
+				boot_program_page(par1*SPM_PAGESIZE, pageData);
 				
 			}
 		default:
@@ -211,7 +196,8 @@ int main()
 		initLine();
  
 		do
-		{
+		{	// "Command interpreter Format "x 123 456" wobei "abcdx 123 456" das selbe gint (command char 'x'!) 
+			// 'q' verlässt die command loop.
 			c = uart_getc();
 			if( !(c & UART_NO_DATA) )
 			{
