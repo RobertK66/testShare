@@ -20,7 +20,6 @@
 #include <util/delay.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <avr/pgmspace.h> 
 #include "uart.h"
  
 #define BOOT_UART_BAUD_RATE     9600     /* Baudrate */
@@ -28,8 +27,10 @@
 #define XOFF                    19       /* XOFF Zeichen */
 
 int main();
+
+// Section .myapp liegt bei 0x0000 im prog mem.
+// alles andere (.text leigt ab 0x1800 (=> word ptr: 0x0c00 als boot section start)
 void mainApp() __attribute__((section(".myapp")));
-//
 void mainApp() {
 	DDRC = 0xFF;
 	PORTC = 0xFF;
@@ -43,13 +44,10 @@ void mainApp() {
 	}	
 }
 
-
-
 #define C_MODE_EMPTY  0x00
 #define C_MODE_READINT1 0x01
 #define C_MODE_READINT2 0x02
 #define C_MODE_TOOMUCH 0x03
-
 
 char valueBuffer[17];
 unsigned char bufIx;
@@ -71,7 +69,6 @@ void initLine(void ) {
 	par2 = 0;
 	uart_puts("Boot>");
 }
-
 
 bool ReadFlashPage(uint32_t flashStartAdr, uint8_t  *dataPage){
 	unsigned int index;
