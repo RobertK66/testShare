@@ -18,15 +18,19 @@
 #include <avr/interrupt.h>
 #include <avr/boot.h>
 #include <util/delay.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <avr/pgmspace.h> 
 #include "uart.h"
  
 #define BOOT_UART_BAUD_RATE     9600     /* Baudrate */
 #define XON                     17       /* XON Zeichen */
 #define XOFF                    19       /* XOFF Zeichen */
 
-int mainApp() __attribute__((section(".myapp")));
+int main();
+void mainApp() __attribute__((section(".myapp")));
 //
-int mainApp() {
+void mainApp() {
 	DDRC = 0xFF;
 	PORTC = 0xFF;
 		
@@ -37,70 +41,239 @@ int mainApp() {
 		RED_OFF;
 		_delay_ms(400);
 	}
-	main();
+	//main();
 }
 
+
+
+#define C_MODE_EMPTY  0x00
+#define C_MODE_READINT1 0x01
+#define C_MODE_READINT2 0x02
+#define C_MODE_TOOMUCH 0x03
+
+
+char valueBuffer[17];
+unsigned char bufIx;
+
+int ConvertBuf() {
+	valueBuffer[bufIx & 0x0F] = '\0';
+	return atoi(valueBuffer);
+}
+
+unsigned char	cmdMode;
+unsigned char   cmd;
+int par1;
+int par2;
+
+void initLine(void ) {
+	cmdMode = C_MODE_EMPTY;
+	cmd = 0;
+	par1 = 0;
+	par2 = 0;
+	uart_puts("Boot>");
+}
+
+#define PAGESIZE 64
+
+
+/*!
+* The function Returns one byte located on Flash address given by ucFlashStartAdr.
+**/
+unsigned char ReadFlashByte(unsigned long flashStartAdr){
+	return (unsigned char)*((const unsigned char __flash*)flashStartAdr);  
+} // Returns data from Flash
+
+
+unsigned char ReadFlashPage(unsigned long flashStartAdr, unsigned char *dataPage){
+	unsigned int index;
+	if(!(flashStartAdr & (PAGESIZE-1))){      // If input address is a page address
+		for(index = 0; index < PAGESIZE; index++){
+			dataPage[index] = ReadFlashByte(flashStartAdr + index);
+		}
+		return true;                            // Return TRUE if valid page address
+	}
+	else{
+		return false;                           // Return FALSE if not valid page address
+	}
+}
+
+
+void boot_program_page (uint32_t page, uint8_t *buf)
+{
+	uint16_t i;
+	uint8_t sreg;
+	// Disable interrupts.
+	sreg = SREG;
+	cli();
+	eeprom_busy_wait ();
+	boot_page_erase (page);
+	boot_spm_busy_wait ();      // Wait until the memory is erased.
+	for (i=0; i<SPM_PAGESIZE; i+=2)
+	{
+		// Set up little-endian word.
+		uint16_t w = *buf++;
+		w += (*buf++) << 8;
+		
+		boot_page_fill (page + i, w);
+	}
+	boot_page_write (page);     // Store buffer in flash page.
+	boot_spm_busy_wait();       // Wait until the memory is written.
+	// Reenable RWW-section again. We need this if we want to jump back
+	// to the application after bootloading.
+	boot_rww_enable ();
+	// Re-enable interrupts (if they were ever enabled).
+	SREG = sreg;
+}
+
+
+const char * hex = "0123456789ABCDEF";
+
+
+unsigned char execute(unsigned char c, int par1, int par2) {
+	
+	unsigned char pageData[PAGESIZE*2];
+	
+	uart_putc(c);
+	uart_putc(':');
+	char buffer[7];      // buffer to put string
+	itoa(par1, buffer, 10);    // make the string
+	uart_puts("(");
+	uart_puts(buffer);
+	itoa(par2, buffer, 10);    // make the string
+	uart_puts(",");
+	uart_puts(buffer);
+	uart_puts(")\n\r");
+
+
+
+	switch (c) {
+		case 'q':
+			return 0;
+		case 'r':
+			{	// read a page from flash	par1 ... page #
+				//
+				if (ReadFlashPage(par1*PAGESIZE, pageData)) {
+					uart_puts("ReadOk:");
+					for (int i=0;i<PAGESIZE;i++){
+						if (!(i%8)){
+							uart_putc('\n');
+						}
+						//printf("0x%02x, ", pageData[i]);
+						uart_putc(hex[(pageData[i]>>4)&0xF]);
+						uart_putc(hex[(pageData[i])&0xF]);
+						uart_putc(' ');
+					}
+				} else {
+					uart_puts("Error in read\n\r");
+				}
+			}
+			break;
+		case 'w':
+			{	// write some data from flash	par1 ... page #
+				//
+				for (int i=0;i<PAGESIZE;i++){
+					pageData[i] = i & 0xFF;
+				}				
+				boot_program_page(par1*PAGESIZE, pageData);
+				
+			}
+		default:
+			break;		
+	}
+	
+	
+	return 1;
+}
 
 
 int main() 
 {
-    unsigned int 	c=0;            /* Empfangenes Zeichen + Statuscode */
-    unsigned char	temp;           /* Variable */
-	unsigned char   flag=1;         /* Flag zum steuern der Endlosschleife */
-//	unsigned char   p_mode=0;	    /* Flag zum steuern des Programmiermodus */
-    void (*start)( void ) = 0x0000; /* Funktionspointer auf 0x0000 */
+	// Endlosschleife Bootloader:
+	do {
+	
+		unsigned int 	c=0;            /* Empfangenes Zeichen + Statuscode */
+		unsigned char	temp;           /* Variable */
+		unsigned char   flag=1;         /* Flag zum steuern der Endlosschleife */
+	//	void (*start)( void ) = 0x0000; /* Funktionspointer auf 0x0000 */
+				
+		/* Interrupt Vektoren verbiegen */
+		char sregtemp = SREG;
+		cli();
+		temp = GICR ;
+		GICR  = temp | (1<<IVCE);
+		GICR  = temp | (1<<IVSEL);
+		SREG = sregtemp;
  
-    /* Interrupt Vektoren verbiegen */
+		/* Einstellen der Baudrate und aktivieren der Interrupts */
+		uart_init( UART_BAUD_SELECT(BOOT_UART_BAUD_RATE,F_CPU) ); 
+		sei();
+ 
+		initLine();
+ 
+		do
+		{
+			c = uart_getc();
+			if( !(c & UART_NO_DATA) )
+			{
+				switch((unsigned char)c)
+				{
+					case '\n':
+					case '\r':
+						if (cmdMode == C_MODE_READINT1) {
+							par1 = ConvertBuf();
+						} else if (cmdMode == C_MODE_READINT2) {
+							par2 = ConvertBuf();
+						}
+						flag = execute(cmd, par1, par2) ;
+						initLine();
+						break;
+					case ' ':
+						if (cmdMode == C_MODE_EMPTY) {
+							cmdMode = C_MODE_READINT1;
+							bufIx = 0;
+						} else if (cmdMode == C_MODE_READINT1) {
+						  	par1 = ConvertBuf();
+							cmdMode = C_MODE_READINT2;
+							bufIx = 0;  
+						} else if (cmdMode == C_MODE_READINT2) {
+							par2 = ConvertBuf();
+							cmdMode = C_MODE_TOOMUCH;
+						}
+						break;
+					default:
+						if (cmdMode == C_MODE_EMPTY) {
+							cmd = c;
+						} else {
+							valueBuffer[(bufIx++) & 0x0F] = c;
+						}
+ 						break;
+				}
+			}
+		}
+		while(flag);
+ 
+		uart_puts("Springe zur Adresse 0x0000!\n\r");
+		_delay_ms(1000);
 
-    char sregtemp = SREG;
-    cli();
-    temp = GICR ;
-    GICR  = temp | (1<<IVCE);
-    GICR  = temp | (1<<IVSEL);
-    SREG = sregtemp;
- 
-    /* Einstellen der Baudrate und aktivieren der Interrupts */
-    uart_init( UART_BAUD_SELECT(BOOT_UART_BAUD_RATE,F_CPU) ); 
-    sei();
- 
-    uart_puts("Hallo hier ist der Bootloader\n\r");
-    _delay_ms(1000);
- 
-    do
-    {
-        c = uart_getc();
-        if( !(c & UART_NO_DATA) )
-        {
-            switch((unsigned char)c)
-            {
-                 case 'q': 
-					 flag=0;
-                     uart_puts("Verlasse den Bootloader!\n\r");
-                     break;
-                  default:
-                     uart_puts("Du hast folgendes Zeichen gesendet: ");
-                     uart_putc((unsigned char)c);
-                     uart_puts("\n\r");
-                     break;
-            }
-        }
-    }
-    while(flag);
- 
-    uart_puts("Springe zur Adresse 0x0000!\n\r");
-    _delay_ms(1000);
+		/* vor Rücksprung eventuell benutzte Hardware deaktivieren
+		   und Interrupts global deaktivieren, da kein "echter" Reset erfolgt */
 
-    /* vor Rücksprung eventuell benutzte Hardware deaktivieren
-       und Interrupts global deaktivieren, da kein "echter" Reset erfolgt */
+		/* Interrupt Vektoren wieder gerade biegen */
+		cli();
+		temp = GICR ;
+		GICR  = temp | (1<<IVCE);
+		GICR  = temp & ~(1<<IVSEL);
 
-    /* Interrupt Vektoren wieder gerade biegen */
-    cli();
-    temp = GICR ;
-    GICR  = temp | (1<<IVCE);
-    GICR  = temp & ~(1<<IVSEL);
-
-    /* Rücksprung zur Adresse 0x0000 */
-    start(); 
-	mainApp();
-    return 0;
+		/* Rücksprung zur Adresse 0x0000 */
+		//!?EIND=0 wenn win 2byte jmp nicht ausreicht, weil Flash uu groß 
+		//start(); 
+		
+		mainApp();
+		// Wenn Hauptprogramm ein return macht, kommen wir wieder in die Bootloader Schleife .... 
+	} while (1);
+	return (0);
 }
+
+
+
+
