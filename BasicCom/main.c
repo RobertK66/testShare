@@ -10,12 +10,11 @@
 #include "main.h"
 #include "Leds.h"
 
-// Globlas
+// Globals
 void (*ExecutePtrs[MN_EXEC_COUNT])(void);
 uint8_t execBits[MN_EXEC_BYTES];
 
 // Locals
-
 void init_modules(uint8_t *execBits);
 
 
@@ -40,7 +39,7 @@ void init_modules(uint8_t *execBits) {
 	}
 	
 	// TODO replace mit 'autocall'/reflection oder sowas ähnliches....
-	ld_module_init(0);
+	ld_module_init(EXECNR_LED);
 	
 }
 

@@ -12,9 +12,11 @@
 #define MN_EXEC_COUNT	16
 #define MN_EXEC_BYTES	MN_EXEC_COUNT/8
 
+// Globals 
 extern void (*ExecutePtrs[MN_EXEC_COUNT])(void);
 extern uint8_t execBits[MN_EXEC_BYTES];
 
+// API
 #define MND_ENTER_EXECUTE(nr, ptr) ExecutePtrs[nr] = ptr; 
 #define MND_SETEXEC(nr) execBits[nr>>3] = execBits[nr>>3] | BV(nr & 0x07);
 #define MND_CLREXEC(nr) execBits[nr>>3] = execBits[nr>>3] &  ~BV(nr & 0x07);
