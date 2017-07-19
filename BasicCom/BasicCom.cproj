@@ -131,6 +131,9 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Globals.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="Leds.c">
       <SubType>compile</SubType>
     </Compile>

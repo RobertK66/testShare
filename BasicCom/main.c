@@ -10,20 +10,18 @@
 #include "main.h"
 #include "Leds.h"
 
-
 // Globlas
-void (*ExecutePtrs[MN_EXEC_BYTES])(void);
+void (*ExecutePtrs[MN_EXEC_COUNT])(void);
+uint8_t execBits[MN_EXEC_BYTES];
 
 // Locals
-uint8_t execBits[MN_EXEC_BYTES];
 
 void init_modules(uint8_t *execBits);
 
+
 int main(void)
 {
-	
 	init_modules(execBits);
-	
     while (1) 
     {
 		// For every set execute bit the corresponding function pointer gets called.
@@ -34,7 +32,6 @@ int main(void)
 		}		
     }
 }
-
 
 void init_modules(uint8_t *execBits) {
 	// Clear all Execute Bits
@@ -48,12 +45,12 @@ void init_modules(uint8_t *execBits) {
 }
 
 
-
-// extern API
-void mn_enter_execute(uint8_t execbit, void (* ptr)(void)){
-	ExecutePtrs[execbit] = ptr;
-}
-
-void mn_setexec(uint8_t execnr){
-	execBits[execnr>>3] = execBits[execnr>>3] | BV(execnr & 0x07);
-}
+//
+//// extern API
+//void mn_enter_execute(uint8_t execbit, void (* ptr)(void)){
+	//ExecutePtrs[execbit] = ptr;
+//}
+//
+//void mn_setexec(uint8_t execnr){
+	//execBits[execnr>>3] = execBits[execnr>>3] | BV(execnr & 0x07);
+//}
