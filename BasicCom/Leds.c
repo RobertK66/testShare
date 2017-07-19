@@ -19,7 +19,7 @@
 #define GREEN_ON  (PORTC &= ~(BV(3)))
 
 
-// Locals
+// Locals 
 uint8_t cntRed;
 uint8_t cntYellow;
 uint8_t cntGreen;
@@ -30,17 +30,16 @@ uint8_t red100ms;
 uint8_t yellow100ms;
 uint8_t green100ms;
 
-bool switch_led(ld_color col, uint8_t* cnt);
+bool ldp_switch_led(ld_color col, uint8_t* cnt);
 
-
-
+/// EXEC APIs
 void ld_module_init(uint8_t execnr) {
 	DDRC = 0xFF;
 	PORTC = 0xFF;
 	
 	MND_ENTER_EXECUTE(execnr, &ld_module_exec);
 	// self test
-	ld_flash_force(20, LD_FLASH_FAST, GREEN);
+	ld_flash_force(20, 8, GREEN);
 	ld_flash_force(10, LD_FLASH_SLOW, RED);
 	ld_flash_force(100, LD_FLASH_FAST, YELLOW);
 }
@@ -50,7 +49,7 @@ void ld_module_exec() {
 	if (timRed > 0) {
 		timRed--;
 		if (timRed == 0){
-			if (switch_led(RED, &cntRed)) {
+			if (ldp_switch_led(RED, &cntRed)) {
 				timRed = 100 * red100ms;
 			}
 		}
@@ -58,7 +57,7 @@ void ld_module_exec() {
 	if (timYellow > 0) {
 		timYellow--;
 		if (timYellow == 0){
-			if (switch_led(YELLOW, &cntYellow)) {
+			if (ldp_switch_led(YELLOW, &cntYellow)) {
 				timYellow = 100 * yellow100ms;
 			}
 		}
@@ -66,7 +65,7 @@ void ld_module_exec() {
 	if (timGreen > 0) {
 		timGreen--;
 		if (timGreen == 0){
-			if (switch_led(GREEN, &cntGreen)) {
+			if (ldp_switch_led(GREEN, &cntGreen)) {
 				timGreen = 100 * green100ms;
 			}
 		}
@@ -77,36 +76,7 @@ void ld_module_exec() {
 	}
 }
 
-bool switch_led(ld_color col, uint8_t* cnt){
-	uint8_t bitnr;
-	switch(col){
-		case RED:
-			bitnr = 5;
-			break;
-		case YELLOW:
-			bitnr = 4;
-			break;
-		case GREEN:
-		default:
-			bitnr = 3;
-			break;
-	}
-	if (*cnt & 0x01) {
-		PORTC |= BV(bitnr);
-	} else {
-		PORTC &= ~BV(bitnr);
-	}
-	(*cnt)--;
-	
-	if (*cnt == 0) {
-		// lets stop flashing now.
-		return false;
-	}
-	return true;
-}
-
-
-
+// Module API
 bool ld_flash(uint8_t count, uint8_t time, ld_color color){
 	// TODO: do not override flashing if something runs on that color.....
 	return false;
@@ -134,4 +104,35 @@ void ld_flash_force(uint8_t count, uint8_t time, ld_color color){
 		}
 		MND_SETEXEC(EXECNR_LED);
 }
+
+
+//  locals
+bool ldp_switch_led(ld_color col, uint8_t* cnt){
+	uint8_t bitnr;
+	switch(col){
+		case RED:
+		bitnr = 5;
+		break;
+		case YELLOW:
+		bitnr = 4;
+		break;
+		case GREEN:
+		default:
+		bitnr = 3;
+		break;
+	}
+	if (*cnt & 0x01) {
+		PORTC |= BV(bitnr);
+		} else {
+		PORTC &= ~BV(bitnr);
+	}
+	(*cnt)--;
+	
+	if (*cnt == 0) {
+		// lets stop flashing now.
+		return false;
+	}
+	return true;
+}
+
 

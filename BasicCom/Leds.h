@@ -9,6 +9,7 @@
 #include <stdbool.h>
 
 // EXEC API
+// TODO: wie vergeben wir diese Bits am besten fehlerfrei?... -> nach main.h schieben, oder precompiler count++ !?
 #define EXECNR_LED 0
 
 void ld_module_init(uint8_t execnr);
@@ -24,7 +25,7 @@ typedef enum
 
 // the values here are ON/OFF times in 100ms
 #define LD_FLASH_FAST 3
-#define LD_FLASH_SLOW 10
+#define LD_FLASH_SLOW 40
 
 bool ld_flash(uint8_t count, uint8_t time, ld_color color);
 void ld_flash_force(uint8_t count, uint8_t time, ld_color color);

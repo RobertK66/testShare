@@ -14,15 +14,11 @@
 
 // Globals 
 extern void (*ExecutePtrs[MN_EXEC_COUNT])(void);
-extern uint8_t execBits[MN_EXEC_BYTES];
+extern uint8_t ExecBits[MN_EXEC_BYTES];
 
 // API
 #define MND_ENTER_EXECUTE(nr, ptr) ExecutePtrs[nr] = ptr; 
-#define MND_SETEXEC(nr) execBits[nr>>3] = execBits[nr>>3] | BV(nr & 0x07);
-#define MND_CLREXEC(nr) execBits[nr>>3] = execBits[nr>>3] &  ~BV(nr & 0x07);
-
-//
-//void mn_enter_execute(uint8_t execnr, void (*ptr)(void));
-//void mn_setexec(uint8_t execnr);
+#define MND_SETEXEC(nr) ExecBits[nr>>3] = ExecBits[nr>>3] | BV(nr & 0x07);
+#define MND_CLREXEC(nr) ExecBits[nr>>3] = ExecBits[nr>>3] &  ~BV(nr & 0x07);
 
 #endif /* MAIN_H_ */

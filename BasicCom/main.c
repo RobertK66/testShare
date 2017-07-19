@@ -11,45 +11,34 @@
 #include "Leds.h"
 
 // Globals
-void (*ExecutePtrs[MN_EXEC_COUNT])(void);
-uint8_t execBits[MN_EXEC_BYTES];
+//uint8_t test __attribute__ ((section (".data.MySram0")));
+void (*ExecutePtrs[MN_EXEC_COUNT])(void) ;	//TODO: vieleicht besser diese ptr list vom Compiler im Flash erzeugen .....
+uint8_t ExecBits[MN_EXEC_BYTES];
 
 // Locals
-void init_modules(uint8_t *execBits);
-
+void init_modules();
 
 int main(void)
 {
-	init_modules(execBits);
+	init_modules();
     while (1) 
     {
 		// For every set execute bit the corresponding function pointer gets called.
 		for (uint8_t i = 0; i < MN_EXEC_COUNT; i++) {
-			if ((execBits[i>>3] & BV(i & 0x07)) > 0) {
+			if ((ExecBits[i>>3] & BV(i & 0x07)) > 0) {
 				ExecutePtrs[i]();
 			}
 		}		
     }
 }
 
-void init_modules(uint8_t *execBits) {
+void init_modules() {
 	// Clear all Execute Bits
 	for (uint8_t i = 0; i < MN_EXEC_BYTES; i++) {
-		execBits[i] = 0x00;
+		ExecBits[i] = 0x00;
 	}
 	
 	// TODO replace mit 'autocall'/reflection oder sowas ähnliches....
 	ld_module_init(EXECNR_LED);
-	
 }
 
-
-//
-//// extern API
-//void mn_enter_execute(uint8_t execbit, void (* ptr)(void)){
-	//ExecutePtrs[execbit] = ptr;
-//}
-//
-//void mn_setexec(uint8_t execnr){
-	//execBits[execnr>>3] = execBits[execnr>>3] | BV(execnr & 0x07);
-//}
