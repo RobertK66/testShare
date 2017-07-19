@@ -17,13 +17,19 @@ void ld_module_init(uint8_t execnr) {
 	PORTC = 0xFF;
 	
 	mn_enter_execute(execnr, &ld_module_exec);
+	mn_setexec(execnr);
+	YELLOW_ON;
+	RED_ON;
+	GREEN_ON;
 }
 
 void ld_module_exec() {
 	counter++;
-	if (counter > 0x7FFFFFFF) {
-		YELLOW_ON;
+	if (counter> 2000)
+		counter=0;
+	if (counter > 1000) {
+		GREEN_ON;
 	} else {
-		YELLOW_OFF;
+		GREEN_OFF;
 	}
 }
