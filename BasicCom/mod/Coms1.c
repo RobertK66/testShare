@@ -251,3 +251,8 @@ void cm_uart_puts(const char *s )
 	while (*s) cm_uart_putc(*s++);
 }
 
+void cm_uart_puti(int i) {
+	char buffer[8];
+	itoa(i, buffer, 10);
+	cm_uart_puts(buffer);
+}

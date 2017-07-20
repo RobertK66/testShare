@@ -15,11 +15,7 @@ void cm_module_init();
 // Global Module API
 void cm_uart_putc(char c);
 void cm_uart_puts(const char* s);
+void cm_uart_puti(int i);
 
-//typedef struct {
-	//char cmd;
-	//int par1;
-	//int par2;
-//} cm_cmd;
 
 #endif /* COMS1_H_ */

@@ -7,7 +7,8 @@
 #include <stdio.h>
 #include "Globals.h"
 #include "main.h"
-#include "mod\Cmd.h"
+#include "mod/Cmd.h"
+#include "mod/ProgMem.h"
 
 #define CD_CMDQUEUE_SIZE 8
 #define CD_CMDQUEUE_MASK (CD_CMDQUEUE_SIZE - 1)
@@ -32,17 +33,24 @@ void cd_exec_cmd() {
 	cmd = CdCmdQueue[ix];
 	CdCmdRead = ix;
 	
-	// Just write as output ....	
-	char buffer[8];      
-	uartPrintS("Cmd '");
-	uartPrintC(cmd.cmd);
-	uartPrintS("': p1=");
-	itoa(cmd.par1, buffer, 10);
-	uartPrintS(buffer);
-	uartPrintS(" p2=");
-	itoa(cmd.par2, buffer, 10);
-	uartPrintS(buffer);
-	uartPrintS("\n");
+	
+	switch (cmd.cmd) {
+		case 'r':
+			pg_print_flash_page(cmd.par1);
+			break;
+		default:
+			{
+			// Just write as output ....
+			uartPrintS("Cmd '");
+			uartPrintC(cmd.cmd);
+			uartPrintS("': p1=");
+			uartPrintI(cmd.par1);
+			uartPrintS(" p2=");
+			uartPrintI(cmd.par2);
+			uartPrintS("\n");
+			}
+			break;	
+	}
 
 }
 

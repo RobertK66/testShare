@@ -35,7 +35,7 @@ int main(void)
 	init_modules();
     while (1) 
     {
-		YELLOW_TOGGLE;
+		YELLOW_TOGGLE;  // to meassure main loop with OSZI ;-)
 		// For every set execute bit the corresponding function pointer gets called.
 		for (uint8_t i = 0; i < MN_EXEC_COUNT; i++) {
 			if ((ExecBits[i>>3] & BV((i & 0x07))) > 0) {
