@@ -9,19 +9,19 @@
 #include <avr/interrupt.h>
 #include "Globals.h"
 #include "main.h"
-#include "Coms1.h"
+#include "mod\Cmd.h"
+#include "mod\Coms1.h"
 
 #define BAUD 9600
-#define BAUDRATE ((F_CPU)/(BAUD*16UL)-1)
 
 #define CM_TX_BUFFER_SIZE 64
 #define CM_TX_BUFFER_MASK (CM_TX_BUFFER_SIZE-1)
 #define CM_RX_BUFFER_SIZE 64
 #define CM_RX_BUFFER_MASK (CM_RX_BUFFER_SIZE-1)
 
-#define CM_CMDQUEUE_SIZE 8
-#define CM_CMDQUEUE_MASK (CM_CMDQUEUE_SIZE - 1)
-
+//#define CM_CMDQUEUE_SIZE 8
+//#define CM_CMDQUEUE_MASK (CM_CMDQUEUE_SIZE - 1)
+//
 
 // Locals
 // Ringbuffer with pointers for usage in TX and RX interrupts.
@@ -33,12 +33,11 @@ volatile uint8_t CmRxWrt;
 volatile uint8_t CmRxRead;
 volatile bool CmRxBufferOverflow;
 
-// Command queue with parsed commands executed in 2nd Exec.
-cm_cmd CmCmdQueue[CM_CMDQUEUE_SIZE];
-uint8_t CmCmdWrt;
-uint8_t CmCmdRead;
+//// Command queue with parsed commands executed in 2nd Exec.
+//cm_cmd CmCmdQueue[CM_CMDQUEUE_SIZE];
+//uint8_t CmCmdWrt;
+//uint8_t CmCmdRead;
 
-void cm_exec_cmd();
 void cm_exec_charrx();
 
 void uart_puts(const char* s);
@@ -54,7 +53,7 @@ typedef enum {
 	} cm_linestatus;
 
 cm_linestatus cmStat; 
-cm_cmd cmCurrentCmd;
+cdCmd_t cmCurrentCmd;
 uint8_t cm_ParIx;
 char cm_parBuffer[8];
 
@@ -68,48 +67,46 @@ void cm_module_init() {
 	
 	cmStat = AWAIT_COM_CHAR;
 	
-	uint16_t br = BAUDRATE;
-	UBRRH = (unsigned char)((br>>8)&0x80) ;
-    UBRRL = (unsigned char) (br&0x00FF);
+	UBRRH = (unsigned char)((((F_CPU)/(BAUD*16UL)-1)>>8)&0x80) ;
+    UBRRL = (unsigned char) (((F_CPU)/(BAUD*16UL)-1)&0x00FF);
 		
-	               
 	UCSRB|= BV(TXEN)|BV(RXEN)|BV(RXCIE);                
 	UCSRC|= (1<<URSEL)|(1<<UCSZ0)|(1<<UCSZ1);   
 	sei();
 		
-	MND_ENTER_EXECUTE(EXECNR_CMD, &cm_exec_cmd);
+	//MND_ENTER_EXECUTE(EXECNR_CMD, &cm_exec_cmd);
 	MND_ENTER_EXECUTE(EXECNR_CHAR_RX, &cm_exec_charrx);
 	
-	uart_puts("hallo\n\r");
+	cm_uart_puts("hallo\n\r");
 }
-
-void cm_exec_cmd() {
-	uint8_t ix;
-	cm_cmd cmd;
-	
-	if ( CmCmdWrt == CmCmdRead ) {
-		// no more commands available. Clear execute from main loop.
-		MND_CLREXEC(EXECNR_CMD);
-		return;
-	}
-	
-	ix = (CmCmdRead + 1) & CM_CMDQUEUE_MASK;
-	cmd = CmCmdQueue[ix];
-	CmCmdRead = ix;
-	
-	char buffer[8];      // buffer to put string
-			
-	uart_puts("Cmd '");
-	uart_putc(cmd.cmd);
-	uart_puts("': p1=");
-	itoa(cmd.par1, buffer, 10);
-	uart_puts(buffer);
-	uart_puts(" p2=");
-	itoa(cmd.par2, buffer, 10);
-	uart_puts(buffer);
-	uart_puts("\n");
-
-}
+//
+//void cm_exec_cmd() {
+	//uint8_t ix;
+	//cm_cmd cmd;
+	//
+	//if ( CmCmdWrt == CmCmdRead ) {
+		//// no more commands available. Clear execute from main loop.
+		//MND_CLREXEC(EXECNR_CMD);
+		//return;
+	//}
+	//
+	//ix = (CmCmdRead + 1) & CM_CMDQUEUE_MASK;
+	//cmd = CmCmdQueue[ix];
+	//CmCmdRead = ix;
+	//
+	//char buffer[8];      // buffer to put string
+			//
+	//cm_uart_puts("Cmd '");
+	//cm_uart_putc(cmd.cmd);
+	//cm_uart_puts("': p1=");
+	//itoa(cmd.par1, buffer, 10);
+	//cm_uart_puts(buffer);
+	//cm_uart_puts(" p2=");
+	//itoa(cmd.par2, buffer, 10);
+	//cm_uart_puts(buffer);
+	//cm_uart_puts("\n");
+//
+//}
 
 uint16_t cm_parse_par() {
 	cm_parBuffer[cm_ParIx & 0x07] = '\0';
@@ -153,10 +150,11 @@ void cm_exec_charrx(){
 			cmCurrentCmd.par2 = cm_parse_par();
 		}
 		if (cmCurrentCmd.cmd != ' ') {
-			ix = (CmCmdWrt + 1) & CM_CMDQUEUE_MASK;
-			CmCmdQueue[ix] = cmCurrentCmd;
-			CmCmdWrt = ix;
-			MND_SETEXEC(EXECNR_CMD);
+			cd_execute_command(cmCurrentCmd);
+			//ix = (CmCmdWrt + 1) & CM_CMDQUEUE_MASK;
+			//CmCmdQueue[ix] = cmCurrentCmd;
+			//CmCmdWrt = ix;
+			//MND_SETEXEC(EXECNR_CMD);
 		}
 		cmCurrentCmd.cmd = ' ';
 		cmCurrentCmd.par1 = 0;
@@ -235,7 +233,7 @@ ISR (USART_UDRE_vect)
 	}
 }
 
-void uart_putc(char c)
+void cm_uart_putc(char c)
 {
 	uint8_t ix;
 	ix  = (CmTxWrt + 1) & CM_TX_BUFFER_MASK;
@@ -248,9 +246,8 @@ void uart_putc(char c)
 	UCSRB |= BV(UDRIE);
 }
 
-
-void uart_puts(const char *s )
+void cm_uart_puts(const char *s )
 {
-	while (*s) uart_putc(*s++);
+	while (*s) cm_uart_putc(*s++);
 }
 

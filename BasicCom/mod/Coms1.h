@@ -10,17 +10,16 @@
 #define COMS1_H_
 
 // EXEC API
-#define EXECNR_CHAR_RX 1
-#define EXECNR_CMD 2
-
 void cm_module_init();
-void uart_putc(char c);
-void uart_puts(const char* s);
 
-typedef struct {
-	char cmd;
-	int par1;
-	int par2;
-} cm_cmd;
+// Global Module API
+void cm_uart_putc(char c);
+void cm_uart_puts(const char* s);
+
+//typedef struct {
+	//char cmd;
+	//int par1;
+	//int par2;
+//} cm_cmd;
 
 #endif /* COMS1_H_ */

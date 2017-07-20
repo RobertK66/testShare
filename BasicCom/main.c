@@ -9,8 +9,10 @@
 #include <avr/interrupt.h>
 
 #include "main.h"
-#include "Leds.h"
-#include "Coms1.h"
+#include "mod/Leds.h"
+#include "mod/Coms1.h"
+#include "mod/Cmd.h"
+
 
 // Globals
 //uint8_t test __attribute__ ((section (".data.MySram0")));
@@ -25,6 +27,7 @@ void init_modules() {
 	// TODO replace mit 'autocall'/reflection oder sowas ähnliches....
 	ld_module_init();
 	cm_module_init();
+	cd_module_init();
 }
 
 int main(void)

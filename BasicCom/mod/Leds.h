@@ -8,9 +8,6 @@
 #define LEDS_H_
 #include <stdbool.h>
 
-// EXEC API
-// TODO: wie vergeben wir diese Bits am besten fehlerfrei?... -> nach main.h schieben, oder precompiler count++ !?
-#define EXECNR_LED 0
 
 void ld_module_init();
 void ld_module_exec();

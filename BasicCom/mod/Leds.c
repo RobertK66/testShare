@@ -6,9 +6,9 @@
  */ 
 #include <avr/io.h>
 #include <stdbool.h>
-
+#include "Globals.h"
 #include "main.h"
-#include "Leds.h"
+#include "mod/Leds.h"
 
 // Locals 
 uint8_t cntRed;

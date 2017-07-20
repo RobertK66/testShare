@@ -9,6 +9,12 @@
 
 #define F_CPU 8000000UL
 
+// Execut bits
+#define MN_EXEC_COUNT	16
+#define EXECNR_LED		0
+#define EXECNR_CHAR_RX	1
+#define EXECNR_CMD		2
+
 #define BV(x) (1<<x)
 
 

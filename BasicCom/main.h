@@ -6,10 +6,11 @@
  */ 
 #ifndef MAIN_H_
 #define MAIN_H_
-
+#include <stdlib.h>
 #include "Globals.h"
 
-#define MN_EXEC_COUNT	16
+
+//#define MN_EXEC_COUNT	16
 #define MN_EXEC_BYTES	MN_EXEC_COUNT/8
 
 // Globals 
