@@ -7,9 +7,7 @@
 #include <stdio.h>
 #include "Globals.h"
 #include "main.h"
-#include "mod\Coms1.h"
 #include "mod\Cmd.h"
-
 
 #define CD_CMDQUEUE_SIZE 8
 #define CD_CMDQUEUE_MASK (CD_CMDQUEUE_SIZE - 1)
@@ -36,15 +34,15 @@ void cd_exec_cmd() {
 	
 	// Just write as output ....	
 	char buffer[8];      
-	cm_uart_puts("Cmd '");
-	cm_uart_putc(cmd.cmd);
-	cm_uart_puts("': p1=");
+	uartPrintS("Cmd '");
+	uartPrintC(cmd.cmd);
+	uartPrintS("': p1=");
 	itoa(cmd.par1, buffer, 10);
-	cm_uart_puts(buffer);
-	cm_uart_puts(" p2=");
+	uartPrintS(buffer);
+	uartPrintS(" p2=");
 	itoa(cmd.par2, buffer, 10);
-	cm_uart_puts(buffer);
-	cm_uart_puts("\n");
+	uartPrintS(buffer);
+	uartPrintS("\n");
 
 }
 

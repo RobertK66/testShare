@@ -15,8 +15,8 @@ typedef struct {
 	int par2;
 } cdCmd_t;
 
+void cd_module_init();
 void cd_execute_command(cdCmd_t cmd);
-
 
 
 #endif /* CMD_H_ */
