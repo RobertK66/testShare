@@ -6,39 +6,41 @@
  */ 
 
 #include <avr/io.h>
+#include <avr/interrupt.h>
 
 #include "main.h"
 #include "Leds.h"
+#include "Coms1.h"
 
 // Globals
 //uint8_t test __attribute__ ((section (".data.MySram0")));
 void (*ExecutePtrs[MN_EXEC_COUNT])(void) ;	//TODO: vieleicht besser diese ptr list vom Compiler im Flash erzeugen .....
 uint8_t ExecBits[MN_EXEC_BYTES];
 
-// Locals
-void init_modules();
+void init_modules() {
+	// Clear all Execute Bits
+	for (uint8_t i = 0; i < MN_EXEC_BYTES; i++) {
+		ExecBits[i] = 0x00;
+	}
+	// TODO replace mit 'autocall'/reflection oder sowas ähnliches....
+	ld_module_init();
+	cm_module_init();
+}
 
 int main(void)
 {
 	init_modules();
     while (1) 
     {
+		YELLOW_TOGGLE;
 		// For every set execute bit the corresponding function pointer gets called.
 		for (uint8_t i = 0; i < MN_EXEC_COUNT; i++) {
-			if ((ExecBits[i>>3] & BV(i & 0x07)) > 0) {
+			if ((ExecBits[i>>3] & BV((i & 0x07))) > 0) {
+				//RED_ON;
 				ExecutePtrs[i]();
+				//RED_OFF;
 			}
-		}		
+		}	
     }
-}
-
-void init_modules() {
-	// Clear all Execute Bits
-	for (uint8_t i = 0; i < MN_EXEC_BYTES; i++) {
-		ExecBits[i] = 0x00;
-	}
-	
-	// TODO replace mit 'autocall'/reflection oder sowas ähnliches....
-	ld_module_init(EXECNR_LED);
 }
 

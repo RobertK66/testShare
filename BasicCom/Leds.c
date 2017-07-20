@@ -10,15 +10,6 @@
 #include "main.h"
 #include "Leds.h"
 
-
-#define RED_OFF (PORTC |= BV(5))
-#define RED_ON  (PORTC &= ~(BV(5)))
-#define YELLOW_OFF (PORTC |= BV(4))
-#define YELLOW_ON  (PORTC &= ~(BV(4)))
-#define GREEN_OFF (PORTC |= BV(3))
-#define GREEN_ON  (PORTC &= ~(BV(3)))
-
-
 // Locals 
 uint8_t cntRed;
 uint8_t cntYellow;
@@ -33,15 +24,15 @@ uint8_t green100ms;
 bool ldp_switch_led(ld_color col, uint8_t* cnt);
 
 /// EXEC APIs
-void ld_module_init(uint8_t execnr) {
+void ld_module_init() {
 	DDRC = 0xFF;
 	PORTC = 0xFF;
 	
-	MND_ENTER_EXECUTE(execnr, &ld_module_exec);
+	MND_ENTER_EXECUTE(EXECNR_LED, &ld_module_exec);
 	// self test
-	ld_flash_force(20, 8, GREEN);
-	ld_flash_force(10, LD_FLASH_SLOW, RED);
-	ld_flash_force(100, LD_FLASH_FAST, YELLOW);
+	//ld_flash_force(20, 8, GREEN);
+	ld_flash_force(2, LD_FLASH_SLOW, RED);
+	//ld_flash_force(100, LD_FLASH_FAST, YELLOW);
 }
 
 void ld_module_exec() {
@@ -74,6 +65,7 @@ void ld_module_exec() {
 	if ((timGreen == 0)	&& (timRed == 0) && (timYellow == 0)) {
 		MND_CLREXEC(EXECNR_LED);
 	}
+	
 }
 
 // Module API

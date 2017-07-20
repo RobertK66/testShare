@@ -18,7 +18,7 @@ extern uint8_t ExecBits[MN_EXEC_BYTES];
 
 // API
 #define MND_ENTER_EXECUTE(nr, ptr) ExecutePtrs[nr] = ptr; 
-#define MND_SETEXEC(nr) ExecBits[nr>>3] = ExecBits[nr>>3] | BV(nr & 0x07);
-#define MND_CLREXEC(nr) ExecBits[nr>>3] = ExecBits[nr>>3] &  ~BV(nr & 0x07);
+#define MND_SETEXEC(nr) ExecBits[nr>>3] |= BV(nr & 0x07);
+#define MND_CLREXEC(nr) ExecBits[nr>>3] &= ~BV(nr & 0x07);
 
 #endif /* MAIN_H_ */
