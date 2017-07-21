@@ -8,6 +8,7 @@
 #include "Globals.h"
 #include "main.h"
 #include "mod/Cmd.h"
+#include "mod/Leds.h"
 #include "mod/ProgMem.h"
 
 #define CD_CMDQUEUE_SIZE 8
@@ -24,7 +25,7 @@ void cd_exec_cmd() {
 	cdCmd_t cmd;
 	
 	if ( CdCmdWrt == CdCmdRead ) {
-		// no more commands available. Clear execute from main loop.
+		// no more commands to process. Clear execute from main loop.
 		MND_CLREXEC(EXECNR_CMD);
 		return;
 	}
@@ -33,21 +34,36 @@ void cd_exec_cmd() {
 	cmd = CdCmdQueue[ix];
 	CdCmdRead = ix;
 	
-	
 	switch (cmd.cmd) {
 		case 'r':
 			pg_print_flash_page(cmd.par1);
 			break;
+		case 'w':	
+			{	// Writes (dummy) data to a flash page.
+				uint8_t pageData[64];
+				for (int i=0;i<64;i++){
+					pageData[i] = i & 0xFF;
+				}
+				pg_program_page(cmd.par1, pageData);
+			}
+			break;
+
+		case 'l':
+			// Flashes the red led par1 times (with par2 timimg) 
+			ld_flash_force(cmd.par1, ((cmd.par2>0)?cmd.par2:LD_FLASH_SLOW) , RED);
+			break;
+			
+		
 		default:
 			{
-			// Just write as output ....
-			uartPrintS("Cmd '");
-			uartPrintC(cmd.cmd);
-			uartPrintS("': p1=");
-			uartPrintI(cmd.par1);
-			uartPrintS(" p2=");
-			uartPrintI(cmd.par2);
-			uartPrintS("\n");
+				// Just write as output ....
+				uartPrintS("Cmd '");
+				uartPrintC(cmd.cmd);
+				uartPrintS("': p1=");
+				uartPrintI(cmd.par1);
+				uartPrintS(" p2=");
+				uartPrintI(cmd.par2);
+				uartPrintS("\n");
 			}
 			break;	
 	}
@@ -61,14 +77,18 @@ void cd_module_init() {
 }
 
 
-
-
+// The command is put in queue and execute bit to process this is set.
 void cd_execute_command(cdCmd_t cmd) {
 	uint8_t ix;
 	
 	ix = (CdCmdWrt + 1) & CD_CMDQUEUE_MASK;
-	CdCmdQueue[ix] = cmd;
-	CdCmdWrt = ix;
-	MND_SETEXEC(EXECNR_CMD);
+	if (ix == CdCmdRead) {
+		// queue is full!!! What to do?
+		
+	} else {
+		CdCmdWrt = ix;
+		CdCmdQueue[ix] = cmd;
+		MND_SETEXEC(EXECNR_CMD);
+	}
 }
 

@@ -19,10 +19,6 @@
 #define CM_RX_BUFFER_SIZE 64
 #define CM_RX_BUFFER_MASK (CM_RX_BUFFER_SIZE-1)
 
-//#define CM_CMDQUEUE_SIZE 8
-//#define CM_CMDQUEUE_MASK (CM_CMDQUEUE_SIZE - 1)
-//
-
 // Locals
 // Ringbuffer with pointers for usage in TX and RX interrupts.
 volatile char CmTxBuffer[CM_TX_BUFFER_SIZE];
@@ -32,11 +28,6 @@ volatile uint8_t CmTxRead;
 volatile uint8_t CmRxWrt;
 volatile uint8_t CmRxRead;
 volatile bool CmRxBufferOverflow;
-
-//// Command queue with parsed commands executed in 2nd Exec.
-//cm_cmd CmCmdQueue[CM_CMDQUEUE_SIZE];
-//uint8_t CmCmdWrt;
-//uint8_t CmCmdRead;
 
 void cm_exec_charrx();
 
@@ -79,34 +70,6 @@ void cm_module_init() {
 	
 	cm_uart_puts("hallo\n\r");
 }
-//
-//void cm_exec_cmd() {
-	//uint8_t ix;
-	//cm_cmd cmd;
-	//
-	//if ( CmCmdWrt == CmCmdRead ) {
-		//// no more commands available. Clear execute from main loop.
-		//MND_CLREXEC(EXECNR_CMD);
-		//return;
-	//}
-	//
-	//ix = (CmCmdRead + 1) & CM_CMDQUEUE_MASK;
-	//cmd = CmCmdQueue[ix];
-	//CmCmdRead = ix;
-	//
-	//char buffer[8];      // buffer to put string
-			//
-	//cm_uart_puts("Cmd '");
-	//cm_uart_putc(cmd.cmd);
-	//cm_uart_puts("': p1=");
-	//itoa(cmd.par1, buffer, 10);
-	//cm_uart_puts(buffer);
-	//cm_uart_puts(" p2=");
-	//itoa(cmd.par2, buffer, 10);
-	//cm_uart_puts(buffer);
-	//cm_uart_puts("\n");
-//
-//}
 
 uint16_t cm_parse_par() {
 	cm_parBuffer[cm_ParIx & 0x07] = '\0';
@@ -222,13 +185,12 @@ ISR (USART_RXC_vect)
 ISR (USART_UDRE_vect)
 {
 	uint8_t ix;
-	
 	if ( CmTxWrt != CmTxRead) {
 		ix = (CmTxRead + 1) & CM_TX_BUFFER_MASK;
 		CmTxRead = ix;
 		UDR = CmTxBuffer[ix];  /* send byte */
 	} else {
-		/* disable send interrupt */
+		/* nothing left to send -> disable interrupt */
 		UCSRB &= ~BV(UDRIE);
 	}
 }
